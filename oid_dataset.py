@@ -106,9 +106,9 @@ def generate_images_annotations_json(main_dir, metadata_dir, subset, cls_index, 
             if version == 'challenge2018':
                 # We recommend participants to use the provided subset of the training set as a validation set.
                 # This is preferable over using the V4 val/test sets, as the training set is more densely annotated.
-                img_path = os.path.join(main_dir, 'images', 'train', frame + '.jpg')
+                img_path = os.path.join(main_dir, 'train', frame + '.jpg')
             else:
-                img_path = os.path.join(main_dir, 'images', subset, frame + '.jpg')
+                img_path = os.path.join(main_dir, subset, frame + '.jpg')
 
             if frame in images_sizes:
                 width, height = images_sizes[frame]
@@ -173,9 +173,9 @@ class OidDataset(Dataset):
         self.transform = transform
 
         if version == 'challenge2018':
-            self.base_dir = os.path.join(main_dir, 'images', 'train')
+            self.base_dir = os.path.join(main_dir, 'train')
         else:
-            self.base_dir = os.path.join(main_dir, 'images', subset)
+            self.base_dir = os.path.join(main_dir, subset)
 
         metadata_dir = os.path.join(main_dir, metadata)
         annotation_cache_json = os.path.join(annotation_cache_dir, subset + '.json')
