@@ -5,7 +5,7 @@ import time
 import torch.utils.model_zoo as model_zoo
 from utils import BasicBlock, Bottleneck, BBoxTransform, ClipBoxes
 from anchors import Anchors
-import losses
+import losses_v2
 from lib.nms.pth_nms import pth_nms
 
 def nms(dets, thresh):
@@ -231,7 +231,7 @@ class ResNet(nn.Module):
 
         self.clipBoxes = ClipBoxes()
         
-        self.focalLoss = losses.FocalLoss()
+        self.focalLoss = losses_v2.FocalLoss()
                 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -320,13 +320,11 @@ class ResNet(nn.Module):
             if scores_over_thresh.sum() == 0:
                 # no boxes to NMS, just return
                 return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
-                #return [torch.zeros([1]).cuda(0), torch.zeros([1]).cuda(0), torch.zeros([1, 4]).cuda(0)]          # wenchi
 
 # wenchi ##########################################################################################
-            #if locscore_over_thresh.sum() == 0:
-                ## no boxes to NMS, just return
-                #return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 1)]
-                ##return [torch.zeros([1]).cuda(0), torch.zeros([1]).cuda(0), torch.zeros([1, 1]).cuda(0)]          # wenchi
+            if locscore_over_thresh.sum() == 0:
+                # no boxes to NMS, just return
+                return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 1)]
 # wenchi ##########################################################################################
 
             classification = classification[:, scores_over_thresh, :]

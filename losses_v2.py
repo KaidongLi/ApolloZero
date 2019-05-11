@@ -139,7 +139,7 @@ class FocalLoss(nn.Module):
                 regression_losses.append(torch.tensor(0).float().cuda())
 
             # compute the loss for localization score          # wenchi
-            locscore_loss = torch.abs(locscore - IoU)               # wenchi
+            locscore_loss = torch.abs(locscore[positive_indices, :] - IoU[positive_indices, :])               # wenchi
             locscore_losses.append(locscore_loss.mean())            # wenchi
 
         #return torch.stack(classification_losses).mean(dim=0, keepdim=True), torch.stack(regression_losses).mean(dim=0, keepdim=True)

@@ -16,9 +16,9 @@ from torch.autograd import Variable
 from torchvision import datasets, models, transforms
 import torchvision
 
-import model
+import model_v2
 from anchors import Anchors
-import losses
+import losses_v2
 from dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
 from torch.utils.data import Dataset, DataLoader
 
@@ -26,8 +26,6 @@ import coco_eval
 import csv_eval
 
 assert torch.__version__.split('.')[1] == '4'
-
-os.environ["CUDA_VISIBLE_DEVICES"]="1"        # wenchi
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
@@ -85,15 +83,15 @@ def main(args=None):
 
 	# Create the model
 	if parser.depth == 18:
-		retinanet = model.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model_v2.resnet18(num_classes=dataset_train.num_classes(), pretrained=True)
 	elif parser.depth == 34:
-		retinanet = model.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model_v2.resnet34(num_classes=dataset_train.num_classes(), pretrained=True)
 	elif parser.depth == 50:
-		retinanet = model.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model_v2.resnet50(num_classes=dataset_train.num_classes(), pretrained=True)
 	elif parser.depth == 101:
-		retinanet = model.resnet101(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model_v2.resnet101(num_classes=dataset_train.num_classes(), pretrained=True)
 	elif parser.depth == 152:
-		retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
+		retinanet = model_v2.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
 	else:
 		raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')		
 
@@ -143,29 +141,11 @@ def main(args=None):
 
 		##torch.save(state, retinanet.module, '{}_retinanet_continue_{}.pt'.format(parser.dataset, epoch_num))
 		#torch.save(state, '{}_retinanet_continue_{}.pt'.format(parser.dataset, epoch_num))
-		## First test before training #####################################
-
-		if parser.dataset == 'coco':
-
-			print('Evaluating dataset')
-
-			coco_eval.evaluate_coco(dataset_val, retinanet)
-
-		elif parser.dataset == 'csv' and parser.csv_val is not None:
-
-			print('Evaluating dataset')
-
-			mAP = csv_eval.evaluate(dataset_val, retinanet)
-
-		#scheduler.step(np.mean(epoch_loss))	
-
-		#torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)) 
+		## First test before training ##################################### 
 		
 		for iter_num, data in enumerate(dataloader_train):
 			try:
 				optimizer.zero_grad()
-
-				#pdb.set_trace()
 
 				#classification_loss, regression_loss = retinanet([data['img'].cuda().float(), data['annot']])
 				classification_loss, regression_loss, locscore_loss = retinanet([data['img'].cuda().float(), data['annot']])             # wenchi
@@ -215,11 +195,11 @@ def main(args=None):
 		
 		scheduler.step(np.mean(epoch_loss))	
 
-		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+		torch.save(retinanet.module, '{}_retinanet_v2_{}.pt'.format(parser.dataset, epoch_num))
 
 	retinanet.eval()
 
-	torch.save(retinanet, 'model_final.pt'.format(epoch_num))
+	torch.save(retinanet, 'model_final_v2.pt'.format(epoch_num))
 
 if __name__ == '__main__':
  main()
