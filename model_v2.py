@@ -24,7 +24,7 @@ model_urls = {
 class PyramidFeatures(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
         super(PyramidFeatures, self).__init__()
-        
+
         # upsample C5 to get P5 from the FPN paper
         self.P5_1           = nn.Conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
         self.P5_upsampled   = nn.Upsample(scale_factor=2, mode='nearest')
@@ -53,7 +53,7 @@ class PyramidFeatures(nn.Module):
         P5_x = self.P5_1(C5)
         P5_upsampled_x = self.P5_upsampled(P5_x)
         P5_x = self.P5_2(P5_x)
-        
+
         P4_x = self.P4_1(C4)
         P4_x = P5_upsampled_x + P4_x
         P4_upsampled_x = self.P4_upsampled(P4_x)
@@ -74,7 +74,7 @@ class PyramidFeatures(nn.Module):
 class LocscoreModel(nn.Module):
     def __init__(self, num_features_in, num_anchors=9, feature_size=256):
         super(LocscoreModel, self).__init__()
-        
+
         self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = nn.ReLU()
 
@@ -115,7 +115,7 @@ class LocscoreModel(nn.Module):
 class RegressionModel(nn.Module):
     def __init__(self, num_features_in, num_anchors=9, feature_size=256):
         super(RegressionModel, self).__init__()
-        
+
         self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = nn.ReLU()
 
@@ -158,7 +158,7 @@ class ClassificationModel(nn.Module):
         self.num_classes = num_classes
         self.num_anchors = num_anchors
         self.num_locscore = num_locscore    # wenchi
-        
+
         self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = nn.ReLU()
 
@@ -230,9 +230,9 @@ class ResNet(nn.Module):
         self.regressBoxes = BBoxTransform()
 
         self.clipBoxes = ClipBoxes()
-        
+
         self.focalLoss = losses_v2.FocalLoss()
-                
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -242,7 +242,7 @@ class ResNet(nn.Module):
                 m.bias.data.zero_()
 
         prior = 0.01
-        
+
         self.classificationModel.output.weight.data.fill_(0)
         self.classificationModel.output.bias.data.fill_(-math.log((1.0-prior)/prior))
 
@@ -283,7 +283,7 @@ class ResNet(nn.Module):
             img_batch, annotations = inputs
         else:
             img_batch = inputs
-            
+
         x = self.conv1(img_batch)
         x = self.bn1(x)
         x = self.relu(x)
@@ -313,25 +313,29 @@ class ResNet(nn.Module):
 
             scores = torch.max(classification, dim=2, keepdim=True)[0]
 
+            # mod, select bbox using merged score, kaidong
+            merged_scores = scores * locscore
             scores_over_thresh = (scores>0.05)[0, :, 0]
-
-            locscore_over_thresh = locscore>0.05
+            #locscore_over_thresh = locscore>0.05
 
             if scores_over_thresh.sum() == 0:
                 # no boxes to NMS, just return
                 return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
 
 # wenchi ##########################################################################################
-            if locscore_over_thresh.sum() == 0:
+            #if locscore_over_thresh.sum() == 0:
                 # no boxes to NMS, just return
-                return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 1)]
+                #return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 1)]
 # wenchi ##########################################################################################
 
             classification = classification[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
-            scores = scores[:, scores_over_thresh, :]
-            locscores = locscore[:, locscore_over_thresh, :]                        # wenchi
-            merged_scores = scores * locscores
+
+            # mod, kaidong
+            merged_scores = merged_scores[:, scores_over_thresh, :]
+            #scores = scores[:, scores_over_thresh, :]
+            #locscores = locscore[:, locscore_over_thresh, :]                        # wenchi
+            #merged_scores = scores * locscores
 
             #anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
             anchors_nms_idx = nms(torch.cat([transformed_anchors, merged_scores], dim=2)[0, :, :], 0.5)          # wenchi

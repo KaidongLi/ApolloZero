@@ -10,15 +10,17 @@ import os
 import torch
 
 def evaluate_coco(dataset, model, threshold=0.05):
-    
+
     model.eval()
-    
+
     with torch.no_grad():
 
         # start collecting results
         results = []
         image_ids = []
 
+        # for test, kaidong
+        #for index in range(20):
         for index in range(len(dataset)):
             data = dataset[index]
             scale = data['scale']
@@ -66,6 +68,8 @@ def evaluate_coco(dataset, model, threshold=0.05):
             print('{}/{}'.format(index, len(dataset)), end='\r')
 
         if not len(results):
+            # for test, kaidong
+            print('coco val', 'no res')
             return
 
         # write output

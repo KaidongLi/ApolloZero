@@ -95,13 +95,13 @@ def main(args=None):
 	elif parser.depth == 152:
 		retinanet = model.resnet152(num_classes=dataset_train.num_classes(), pretrained=True)
 	else:
-		raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')		
+		raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
 
 	use_gpu = True
 
 	if use_gpu:
 		retinanet = retinanet.cuda()
-	
+
 	retinanet = torch.nn.DataParallel(retinanet).cuda()
 
 	retinanet.training = True
@@ -121,7 +121,7 @@ def main(args=None):
 
 		retinanet.train()
 		retinanet.module.freeze_bn()
-		
+
 		epoch_loss = []
 
 		## First test before training #####################################
@@ -138,13 +138,14 @@ def main(args=None):
 			#mAP = csv_eval.evaluate(dataset_val, retinanet)
 
 		#scheduler.step(np.mean(epoch_loss))
-                
-		#state = {'epoch': epoch_num + 1, 'state_dict': retinanet.state_dict(), 'optimizer': optimizer.state_dict(), 'scheduler': scheduler.state_dict()}#,  'loss_hist': loss_hist.state_dic()}	
+
+		#state = {'epoch': epoch_num + 1, 'state_dict': retinanet.state_dict(), 'optimizer': optimizer.state_dict(), 'scheduler': scheduler.state_dict()}#,  'loss_hist': loss_hist.state_dic()}
 
 		##torch.save(state, retinanet.module, '{}_retinanet_continue_{}.pt'.format(parser.dataset, epoch_num))
 		#torch.save(state, '{}_retinanet_continue_{}.pt'.format(parser.dataset, epoch_num))
 		## First test before training #####################################
 
+		'''
 		if parser.dataset == 'coco':
 
 			print('Evaluating dataset')
@@ -157,11 +158,19 @@ def main(args=None):
 
 			mAP = csv_eval.evaluate(dataset_val, retinanet)
 
-		#scheduler.step(np.mean(epoch_loss))	
+		retinanet.train()
+		'''
 
-		#torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num)) 
-		
+		#scheduler.step(np.mean(epoch_loss))
+
+		#torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+
 		for iter_num, data in enumerate(dataloader_train):
+
+			# for test, kaidong
+			#if iter_num > 100:
+			#	break
+
 			try:
 				optimizer.zero_grad()
 
@@ -175,7 +184,7 @@ def main(args=None):
 				locscore_loss = locscore_loss.mean()         # wenchi
 
 				loss = classification_loss + regression_loss + locscore_loss             # wenchi
-				
+
 				if bool(loss == 0):
 					continue
 
@@ -192,13 +201,16 @@ def main(args=None):
 				#print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
 				print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | LocScore loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, float(classification_loss), float(regression_loss), float(locscore_loss), np.mean(loss_hist)))
 
-				
+
 				del classification_loss
 				del regression_loss
 				del locscore_loss        # wenchi
 			except Exception as e:
 				print(e)
 				continue
+
+		# mod, save before eval, kaidong
+		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
 
 		if parser.dataset == 'coco':
 
@@ -212,10 +224,8 @@ def main(args=None):
 
 			mAP = csv_eval.evaluate(dataset_val, retinanet)
 
-		
-		scheduler.step(np.mean(epoch_loss))	
 
-		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+		scheduler.step(np.mean(epoch_loss))
 
 	retinanet.eval()
 
