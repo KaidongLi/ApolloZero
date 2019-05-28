@@ -152,12 +152,13 @@ class RegressionModel(nn.Module):
         return out.contiguous().view(out.shape[0], -1, 4)
 
 class ClassificationModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, num_classes=80, num_locscore=1, prior=0.01, feature_size=256):     # wenchi
+    def __init__(self, num_features_in, num_anchors=9, num_classes=80, prior=0.01, feature_size=256):
+    #def __init__(self, num_features_in, num_anchors=9, num_classes=80, num_locscore=1, prior=0.01, feature_size=256):     # wenchi
         super(ClassificationModel, self).__init__()
 
         self.num_classes = num_classes
         self.num_anchors = num_anchors
-        self.num_locscore = num_locscore    # wenchi
+        #self.num_locscore = num_locscore    # wenchi
 
         self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = nn.ReLU()
@@ -171,7 +172,7 @@ class ClassificationModel(nn.Module):
         self.conv4 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
         self.act4 = nn.ReLU()
 
-        self.output = nn.Conv2d(feature_size, num_anchors*(num_classes+num_locscore), kernel_size=3, padding=1)       # wenchi
+        self.output = nn.Conv2d(feature_size, num_anchors*num_classes, kernel_size=3, padding=1)       # wenchi
         self.output_act = nn.Sigmoid()
 
     def forward(self, x):
@@ -196,9 +197,9 @@ class ClassificationModel(nn.Module):
 
         batch_size, width, height, channels = out1.shape
 
-        out2 = out1.view(batch_size, width, height, self.num_anchors, (self.num_classes + self.num_locscore))     # wenchi
+        out2 = out1.view(batch_size, width, height, self.num_anchors, self.num_classes)     # wenchi
 
-        return out2.contiguous().view(x.shape[0], -1, (self.num_classes + self.num_locscore))       # wenchi
+        return out2.contiguous().view(x.shape[0], -1, self.num_classes)       # wenchi
 
 class ResNet(nn.Module):
 
@@ -315,7 +316,7 @@ class ResNet(nn.Module):
 
             # mod, select bbox using merged score, kaidong
             merged_scores = scores * locscore
-            scores_over_thresh = (scores>0.05)[0, :, 0]
+            scores_over_thresh = ( merged_scores > 0.05)[0, :, 0]
             #locscore_over_thresh = locscore>0.05
 
             if scores_over_thresh.sum() == 0:
