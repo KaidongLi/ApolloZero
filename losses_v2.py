@@ -95,6 +95,26 @@ class FocalLoss(nn.Module):
 
             classification_losses.append(cls_loss.sum()/torch.clamp(num_positive_anchors.float(), min=1.0))
 
+
+
+            # compute the loss for localization score          # wenchi, kaidong
+            #print('loss', 'max sc', torch.max(locscore))
+            #locscore = torch.clamp( locscore[positive_indices, :] , 1e-4, 1.0 - 1e-4)
+            locscore = locscore[positive_indices, :]
+            #locscore = torch.clamp(locscore, 1e-4, 1.0 - 1e-4)
+            #print('loss', 'af clmp', locscore)
+            # for test, kaidong
+            print('loss', 'locscore', locscore[52:55])
+            IoU_max = IoU_max[positive_indices]
+            IoU_max = IoU_max.contiguous().view(IoU_max.shape[0], -1)
+
+            locscore = torch.clamp((1.0 - torch.abs(locscore - IoU_max)), 1e-4, 1.0 - 1e-4)
+            print('loss', 'loc for log', locscore[52:55])
+            locscore_loss = -torch.log( locscore )              # wenchi
+            # for test, kaidong
+            #print('loss', 'loss', locscore_loss[50:55])
+            locscore_losses.append(locscore_loss.mean())            # wenchi
+
             # compute the loss for regression
 
             if positive_indices.sum() > 0:
@@ -138,11 +158,5 @@ class FocalLoss(nn.Module):
             else:
                 regression_losses.append(torch.tensor(0).float().cuda())
 
-            # compute the loss for localization score          # wenchi
-            locscore_loss = torch.abs(locscore[positive_indices, :] - IoU[positive_indices, :])               # wenchi
-            locscore_losses.append(locscore_loss.mean())            # wenchi
-
         #return torch.stack(classification_losses).mean(dim=0, keepdim=True), torch.stack(regression_losses).mean(dim=0, keepdim=True)
         return torch.stack(classification_losses).mean(dim=0, keepdim=True), torch.stack(regression_losses).mean(dim=0, keepdim=True), torch.stack(locscore_losses).mean(dim=0, keepdim=True)      # wenchi
-
-    

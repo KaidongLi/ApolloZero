@@ -321,6 +321,7 @@ class ResNet(nn.Module):
 
             if scores_over_thresh.sum() == 0:
                 # no boxes to NMS, just return
+                print('model', 'no over thresh')
                 return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 4)]
 
 # wenchi ##########################################################################################
