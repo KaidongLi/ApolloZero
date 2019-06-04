@@ -72,8 +72,10 @@ class PyramidFeatures(nn.Module):
 
 # wenchi ###################################################################################
 class LocscoreModel(nn.Module):
-    def __init__(self, num_features_in, num_anchors=9, feature_size=256):
+    def __init__(self, num_features_in, num_anchors=9, feature_size=256, num_classes=80):
         super(LocscoreModel, self).__init__()
+
+        self.num_classes = num_classes
 
         self.conv1 = nn.Conv2d(num_features_in, feature_size, kernel_size=3, padding=1)
         self.act1 = nn.ReLU()
@@ -87,7 +89,7 @@ class LocscoreModel(nn.Module):
         self.conv4 = nn.Conv2d(feature_size, feature_size, kernel_size=3, padding=1)
         self.act4 = nn.ReLU()
 
-        self.output = nn.Conv2d(feature_size, num_anchors*1, kernel_size=3, padding=1)
+        self.output = nn.Conv2d(feature_size, num_anchors*self.num_classes, kernel_size=3, padding=1)
 
     def forward(self, x):
 
@@ -108,7 +110,7 @@ class LocscoreModel(nn.Module):
         # out is B x C x W x H, with C = 1*num_anchors
         out = out.permute(0, 2, 3, 1)
 
-        return out.contiguous().view(out.shape[0], -1, 1)
+        return out.contiguous().view(out.shape[0], -1, self.num_classes)
 
 # wenchi ######################################################################################
 
@@ -315,6 +317,7 @@ class ResNet(nn.Module):
             scores = torch.max(classification, dim=2, keepdim=True)[0]
 
             # mod, select bbox using merged score, kaidong
+            # TODO, choose the corresponding localization score in 80 case, kaidong
             merged_scores = scores * locscore
             scores_over_thresh = ( merged_scores > 0.05)[0, :, 0]
             #locscore_over_thresh = locscore>0.05

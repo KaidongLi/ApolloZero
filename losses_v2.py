@@ -101,6 +101,8 @@ class FocalLoss(nn.Module):
             #print('loss', 'max sc', torch.max(locscore))
             #locscore = torch.clamp( locscore[positive_indices, :] , 1e-4, 1.0 - 1e-4)
             locscore = locscore[positive_indices, :]
+            IoU_argmax = IoU_argmax[positive_indices]
+            IoU_argmax = IoU_argmax.contiguous().view(IoU_argmax.shape[0], -1)
             #locscore = torch.clamp(locscore, 1e-4, 1.0 - 1e-4)
             #print('loss', 'af clmp', locscore)
             # for test, kaidong
@@ -111,9 +113,14 @@ class FocalLoss(nn.Module):
             locscore = torch.clamp((1.0 - torch.abs(locscore - IoU_max)), 1e-4, 1.0 - 1e-4)
             #print('loss', 'loc for log', locscore[52:55])
             locscore_loss = -torch.log( locscore )              # wenchi
+            # TODO, should skip calculation when not interested, kaidong
+            [m,n]=locscore_loss.size()
+            for i in range(m-1):
+                locscore_loss[i, 0:IoU_argmax[i]-1] = 0
+                locscore_loss[i, IoU_argmax[i]:] = 0
             # for test, kaidong
             #print('loss', 'loss', locscore_loss[50:55])
-            locscore_losses.append(locscore_loss.mean())            # wenchi
+            locscore_losses.append(locscore_loss.sum()/m)            # wenchi
 
             # compute the loss for regression
 
