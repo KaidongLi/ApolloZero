@@ -154,6 +154,7 @@ def main(args=None):
 		#torch.save(state, '{}_retinanet_continue_{}.pt'.format(parser.dataset, epoch_num))
 		## First test before training #####################################
 
+		# for test, kaidong
 		'''
 		if parser.dataset == 'coco':
 
@@ -214,6 +215,9 @@ def main(args=None):
 				print(e)
 				continue
 
+		# mod, save before eval, kaidong
+		torch.save(retinanet.module, parser.save_folder + '/{}_retinanet_v2_{}.pt'.format(parser.dataset, epoch_num))
+
 		if parser.dataset == 'coco':
 
 			print('Evaluating dataset')
@@ -228,8 +232,6 @@ def main(args=None):
 
 
 		scheduler.step(np.mean(epoch_loss))
-
-		torch.save(retinanet.module, parser.save_folder + '/{}_retinanet_v2_{}.pt'.format(parser.dataset, epoch_num))
 
 	retinanet.eval()
 

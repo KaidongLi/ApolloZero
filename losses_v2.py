@@ -104,12 +104,12 @@ class FocalLoss(nn.Module):
             #locscore = torch.clamp(locscore, 1e-4, 1.0 - 1e-4)
             #print('loss', 'af clmp', locscore)
             # for test, kaidong
-            print('loss', 'locscore', locscore[52:55])
+            #print('loss', 'locscore', locscore[52:55])
             IoU_max = IoU_max[positive_indices]
             IoU_max = IoU_max.contiguous().view(IoU_max.shape[0], -1)
 
             locscore = torch.clamp((1.0 - torch.abs(locscore - IoU_max)), 1e-4, 1.0 - 1e-4)
-            print('loss', 'loc for log', locscore[52:55])
+            #print('loss', 'loc for log', locscore[52:55])
             locscore_loss = -torch.log( locscore )              # wenchi
             # for test, kaidong
             #print('loss', 'loss', locscore_loss[50:55])

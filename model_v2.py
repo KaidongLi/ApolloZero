@@ -319,6 +319,8 @@ class ResNet(nn.Module):
             scores_over_thresh = ( merged_scores > 0.05)[0, :, 0]
             #locscore_over_thresh = locscore>0.05
 
+            # for test, kai
+            #if scores_over_thresh.sum() >= 0:
             if scores_over_thresh.sum() == 0:
                 # no boxes to NMS, just return
                 print('model', 'no over thresh')
