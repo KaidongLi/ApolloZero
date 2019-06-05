@@ -316,12 +316,7 @@ class ResNet(nn.Module):
 
             scores, scores_argmax = torch.max(classification, dim=2, keepdim=True)
 
-            # mod, select bbox using merged score, kaidong
-            locscore = torch.gather(locscore, 2, scores_argmax)
-            merged_scores = scores * locscore
-
-            #merged_scores = scores * locscore
-            scores_over_thresh = ( merged_scores > 0.05)[0, :, 0]
+            scores_over_thresh = ( scores > 0.05)[0, :, 0]
             #locscore_over_thresh = locscore>0.05
 
             # for test, kai
@@ -340,8 +335,21 @@ class ResNet(nn.Module):
             classification = classification[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
 
+            locscore = locscore[:, scores_over_thresh, :]
+            scores_argmax = scores_argmax[:, scores_over_thresh, :]
+            scores = scores[:, scores_over_thresh, :]
+
+            # merge localization score with cls
+            locscore = torch.gather(locscore, 2, scores_argmax)
+            merged_scores = scores * locscore
+
+            # for test, kai
+            #print('model', 'sc dim', scores.shape)
+            #print('model', 'lc dim', locscore.shape)
+            #print('model', 'armax dim', scores_argmax.shape)
+
             # mod, kaidong
-            merged_scores = merged_scores[:, scores_over_thresh, :]
+            #merged_scores = merged_scores[:, scores_over_thresh, :]
             #scores = scores[:, scores_over_thresh, :]
             #locscores = locscore[:, locscore_over_thresh, :]                        # wenchi
             #merged_scores = scores * locscores
