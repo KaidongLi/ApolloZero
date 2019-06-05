@@ -314,11 +314,13 @@ class ResNet(nn.Module):
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
 
-            scores = torch.max(classification, dim=2, keepdim=True)[0]
+            scores, scores_argmax = torch.max(classification, dim=2, keepdim=True)
 
             # mod, select bbox using merged score, kaidong
-            # TODO, choose the corresponding localization score in 80 case, kaidong
+            locscore = torch.gather(locscore, 2, scores_argmax)
             merged_scores = scores * locscore
+
+            #merged_scores = scores * locscore
             scores_over_thresh = ( merged_scores > 0.05)[0, :, 0]
             #locscore_over_thresh = locscore>0.05
 

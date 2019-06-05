@@ -115,9 +115,9 @@ class FocalLoss(nn.Module):
             locscore_loss = -torch.log( locscore )              # wenchi
             # TODO, should skip calculation when not interested, kaidong
             [m,n]=locscore_loss.size()
-            for i in range(m-1):
-                locscore_loss[i, 0:IoU_argmax[i]-1] = 0
-                locscore_loss[i, IoU_argmax[i]:] = 0
+            for i in range(m):
+                locscore_loss[i, 0:IoU_argmax[i]] = 0
+                locscore_loss[i, IoU_argmax[i]+1:] = 0
             # for test, kaidong
             #print('loss', 'loss', locscore_loss[50:55])
             locscore_losses.append(locscore_loss.sum()/m)            # wenchi
