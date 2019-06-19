@@ -30,7 +30,9 @@ import csv_eval
 assert torch.__version__.split('.')[1] == '4'
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
+delta = 10                ################ wenchi
 
 def main(args=None):
 
@@ -115,7 +117,8 @@ def main(args=None):
 
 	retinanet.training = True
 
-	optimizer = optim.Adam(retinanet.parameters(), lr=1e-5)
+	#optimizer = optim.Adam(retinanet.parameters(), lr=1e-5)
+	optimizer = optim.Adam(retinanet.parameters(), lr=1e-4)              ############# wenchi
 
 	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
@@ -189,6 +192,7 @@ def main(args=None):
 				regression_loss = regression_loss.mean()
 				locscore_loss = locscore_loss.mean()         # wenchi
 
+				#loss = classification_loss + regression_loss + delta * locscore_loss             # wenchi
 				loss = classification_loss + regression_loss + locscore_loss             # wenchi
 
 				if bool(loss == 0):

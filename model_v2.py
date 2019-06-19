@@ -314,9 +314,11 @@ class ResNet(nn.Module):
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
 
-            scores, scores_argmax = torch.max(classification, dim=2, keepdim=True)
+            merged_scores = classification * locscore
 
-            scores_over_thresh = ( scores > 0.05)[0, :, 0]
+            scores_max = torch.max(merged_scores, dim=2, keepdim=True)[0]
+
+            scores_over_thresh = ( merged_scores > 0.05)[0, :, 0]
             #locscore_over_thresh = locscore>0.05
 
             # for test, kai
@@ -332,16 +334,9 @@ class ResNet(nn.Module):
                 #return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 1)]
 # wenchi ##########################################################################################
 
-            classification = classification[:, scores_over_thresh, :]
+            merged_scores = merged_scores[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
-
-            locscore = locscore[:, scores_over_thresh, :]
-            scores_argmax = scores_argmax[:, scores_over_thresh, :]
-            scores = scores[:, scores_over_thresh, :]
-
-            # merge localization score with cls
-            locscore = torch.gather(locscore, 2, scores_argmax)
-            merged_scores = scores * locscore
+            scores_max = scores_max[:, scores_over_thresh, :]
 
             # for test, kai
             #print('model', 'sc dim', scores.shape)
@@ -355,9 +350,9 @@ class ResNet(nn.Module):
             #merged_scores = scores * locscores
 
             #anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
-            anchors_nms_idx = nms(torch.cat([transformed_anchors, merged_scores], dim=2)[0, :, :], 0.5)          # wenchi
+            anchors_nms_idx = nms(torch.cat([transformed_anchors, scores_max], dim=2)[0, :, :], 0.5)          # wenchi
 
-            nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
+            nms_scores, nms_class = merged_scores[0, anchors_nms_idx, :].max(dim=1)
 
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
 
