@@ -25,7 +25,7 @@ class FocalLoss(nn.Module):
     #def __init__(self):
 
     #def forward(self, classifications, regressions, anchors, annotations):
-    def forward(self, classifications, regressions, locscores, anchors, annotations):       # wenchi
+    def forward(self, classifications, regressions, locscores, anchors, annotations, regBox, clipBox, imgs):       # wenchi
         alpha = 0.25
         gamma = 2.0
         batch_size = classifications.shape[0]
@@ -100,20 +100,20 @@ class FocalLoss(nn.Module):
             # compute the loss for localization score          # wenchi, kaidong
             #print('loss', 'max sc', torch.max(locscore))
             #locscore = torch.clamp( locscore[positive_indices, :] , 1e-4, 1.0 - 1e-4)
-            locscore = locscore[positive_indices, :]
+            #locscore = locscore[positive_indices, :]
             #locscore = torch.clamp(locscore, 1e-4, 1.0 - 1e-4)
             #print('loss', 'af clmp', locscore)
             # for test, kaidong
             #print('loss', 'locscore', locscore[52:55])
-            IoU_max = IoU_max[positive_indices]
-            IoU_max = IoU_max.contiguous().view(IoU_max.shape[0], -1)
+            #IoU_max = IoU_max[positive_indices]
+            #IoU_max = IoU_max.contiguous().view(IoU_max.shape[0], -1)
 
-            locscore = torch.clamp((1.0 - torch.abs(locscore - IoU_max)), 1e-4, 1.0 - 1e-4)
+            #locscore = torch.clamp((1.0 - torch.abs(locscore - IoU_max)), 1e-4, 1.0 - 1e-4)
             #print('loss', 'loc for log', locscore[52:55])
-            locscore_loss = -torch.log( locscore )              # wenchi
+            #locscore_loss = -torch.log( locscore )              # wenchi
             # for test, kaidong
             #print('loss', 'loss', locscore_loss[50:55])
-            locscore_losses.append(locscore_loss.mean())            # wenchi
+            #locscore_losses.append(locscore_loss.mean())            # wenchi
 
             # compute the loss for regression
 
@@ -149,6 +149,76 @@ class FocalLoss(nn.Module):
 
                 regression_diff = torch.abs(targets - regression[positive_indices, :])
 
+                '''
+                # for test, kaidong
+                print('loss', 'anc shape', anchor.shape)
+                print('loss', 'reg shape', regression.shape)
+                print('loss', 'reg shape', regression[positive_indices, :].shape)
+                print('loss', 'img shape', imgs[j, :, :, :].shape)
+                '''
+
+                # modify data dimension, kaidong
+                anchor_iou = anchor[positive_indices, :].unsqueeze(0)
+                regression_iou = regression[positive_indices, :].unsqueeze(0)
+                img_iou = imgs[j, :, :, :].unsqueeze(0)
+
+                '''
+                # for test, kaidong
+                print('loss', 'anc iou shape', anchor_iou.shape)
+                print('loss', 'reg iou shape', regression_iou.shape)
+                print('loss', 'img iou shape', img_iou.shape)
+                '''
+
+
+                # calculate prediction boxes, kaidong
+                shifted_anchors = regBox(anchor_iou, regression_iou)
+                shifted_anchors = clipBox(shifted_anchors, img_iou)
+
+                #'''
+                # for test, kaidong
+                #print('loss', 'ann shap', assigned_annotations.shape)
+                #print('loss', 'anc shap', shifted_anchors.shape)
+                #print('loss', 'reg 02', regression_iou[0, 0:3, :])
+                #print('loss', 'anc 02', anchor_iou[0, 0:3, :])
+                #print('loss', 'sh ac 02', shifted_anchors[0, 0:3, :])
+                #print('loss', 'idx ', positive_indices)
+                #print('loss', 'idx sum', positive_indices.nonzero())
+                #print('loss', 'ann 09', assigned_annotations[0:10, 0:4])
+                #'''
+
+
+                # calculate iou, kaidong
+                IoU_shift = calc_iou(shifted_anchors.squeeze(0), assigned_annotations[:, :4])
+                IoU_shift_max, IoU_shift_argmax = torch.max(IoU_shift, dim=1)
+                #IoU_shift_max = torch.tensor(IoU_shift_max, requires_grad = False)
+                IoU_shift_max = IoU_shift_max.detach()
+
+                # make loc score, kaidong
+                locscore = locscore[positive_indices, :].squeeze(1)
+
+                # calculate diff, kaidong
+                #regression_diff_new = torch.abs(assigned_annotations[:, 0:4] - shifted_anchors.squeeze(0))
+
+                '''
+                # for test, kaidong
+                print('loss', 'grad?', IoU_shift_max.requires_grad)
+                #print('loss', 'iou 02', IoU_shift[0:3, :])
+                #print('loss', 'iou m 02', IoU_shift_max[0:3])
+                #print('loss', 'lcsc 02', locscore[0:3])
+                #print('loss', 'iou shp', IoU_shift_max.shape)
+                #print('loss', 'lcsc m shp', locscore.shape)
+                #print('loss', 'ori diff', regression_diff)
+                #print('loss', 'our diff', regression_diff_new)
+                #print('loss', 'ori shp', regression_diff.shape)
+                #print('loss', 'our shp', regression_diff_new.shape)
+                #print('loss', 'our dif', regression_diff_new[0:3, :])
+                '''
+
+                # calculate loss, kaidong
+                locscore = torch.clamp((1.0 - torch.abs(locscore - IoU_shift_max)), 1e-4, 1.0 - 1e-4)
+                locscore_loss = -torch.log( locscore )
+                locscore_losses.append(locscore_loss.mean())
+
                 regression_loss = torch.where(
                     torch.le(regression_diff, 1.0 / 9.0),
                     0.5 * 9.0 * torch.pow(regression_diff, 2),
@@ -157,6 +227,7 @@ class FocalLoss(nn.Module):
                 regression_losses.append(regression_loss.mean())
             else:
                 regression_losses.append(torch.tensor(0).float().cuda())
+                locscore_losses.append(torch.tensor(0).float().cuda())
 
         #return torch.stack(classification_losses).mean(dim=0, keepdim=True), torch.stack(regression_losses).mean(dim=0, keepdim=True)
         return torch.stack(classification_losses).mean(dim=0, keepdim=True), torch.stack(regression_losses).mean(dim=0, keepdim=True), torch.stack(locscore_losses).mean(dim=0, keepdim=True)      # wenchi

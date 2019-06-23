@@ -307,7 +307,7 @@ class ResNet(nn.Module):
 
         if self.training:
             #return self.focalLoss(classification, regression, anchors, annotations)
-            return self.focalLoss(classification, regression, locscore, anchors, annotations)         # wenchi
+            return self.focalLoss(classification, regression, locscore, anchors, annotations, self.regressBoxes, self.clipBoxes, img_batch)         # wenchi
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
@@ -332,7 +332,7 @@ class ResNet(nn.Module):
                 #return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 1)]
 # wenchi ##########################################################################################
 
-            classification = classification[:, scores_over_thresh, :]
+            #classification = classification[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
 
             # mod, kaidong
@@ -344,7 +344,7 @@ class ResNet(nn.Module):
             #anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
             anchors_nms_idx = nms(torch.cat([transformed_anchors, merged_scores], dim=2)[0, :, :], 0.5)          # wenchi
 
-            nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
+            nms_scores, nms_class = merged_scores[0, anchors_nms_idx, :].max(dim=1)
 
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
 
