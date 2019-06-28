@@ -319,6 +319,17 @@ class ResNet(nn.Module):
             scores_over_thresh = ( merged_scores > 0.05)[0, :, 0]
             #locscore_over_thresh = locscore>0.05
 
+            '''
+            # for test, kaidong
+            print('model', 'mg shp', merged_scores.shape)
+            print('model', 'sc shp', scores.shape)
+            print('model', 'lc shp', locscore.shape)
+            #print('model', 'mg 03', merged_scores[0, 0:3, 0])
+            #print('model', 'sc 03', scores[0, 0:3, 0])
+            #print('model', 'lc 03', locscore[0, 0:3, 0])
+            print('model', 'lc 03', torch.max(locscore, dim=1)[1])
+            '''
+
             # for test, kai
             #if scores_over_thresh.sum() >= 0:
             if scores_over_thresh.sum() == 0:
@@ -332,7 +343,7 @@ class ResNet(nn.Module):
                 #return [torch.zeros(0), torch.zeros(0), torch.zeros(0, 1)]
 # wenchi ##########################################################################################
 
-            #classification = classification[:, scores_over_thresh, :]
+            classification = classification[:, scores_over_thresh, :]
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
 
             # mod, kaidong
@@ -344,7 +355,14 @@ class ResNet(nn.Module):
             #anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
             anchors_nms_idx = nms(torch.cat([transformed_anchors, merged_scores], dim=2)[0, :, :], 0.5)          # wenchi
 
-            nms_scores, nms_class = merged_scores[0, anchors_nms_idx, :].max(dim=1)
+            '''
+            # for test, kaidong
+            print('model', 'nms idx', anchors_nms_idx)
+            '''
+
+            #nms_scores, nms_class = merged_scores[0, anchors_nms_idx, :].max(dim=1)
+            nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
+
 
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
 
